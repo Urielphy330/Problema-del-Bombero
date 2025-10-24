@@ -28,5 +28,5 @@ using Pkg
 Pkg.add("Graphs")
 Pkg.add("Plots")
 
-✍️ Autor
+## ✍️ Autor
 Desarrollado por Uriel Villanueva Alcala. Contacto: urielalcala330@ciencias.unam.mx
