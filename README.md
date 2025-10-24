@@ -2,6 +2,9 @@
 
 Este repositorio contiene la implementación computacional del problema del bombero utilizando el lenguaje de programación Julia y el enfoque de programación orientada a objetos.
 
+## ✍️ Autor
+Desarrollado por Uriel Villanueva Alcala. Contacto: urielalcala330@ciencias.unam.mx
+
 ## 📘 Descripción
 
 El problema del bombero es un modelo de propagación de incendios en una gráfica, donde en cada paso del tiempo el fuego se extiende a los vértices adyacentes, y un bombero puede defender un vértice para evitar que se queme. Este proyecto define vértices como estructuras mutables y construye gráficas dinámicas para simular el comportamiento del fuego y las estrategias de defensa.
@@ -28,5 +31,4 @@ using Pkg
 Pkg.add("Graphs")
 Pkg.add("Plots")
 
-## ✍️ Autor
-Desarrollado por Uriel Villanueva Alcala. Contacto: urielalcala330@ciencias.unam.mx
+
