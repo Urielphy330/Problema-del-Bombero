@@ -1,4 +1,4 @@
-# Problema del Bombero en Julia 🔥
+# Problema del Bombero en gráficas simples 🔥
 
 Este repositorio contiene la implementación computacional del problema del bombero utilizando el lenguaje de programación Julia y el enfoque de programación orientada a objetos.
 
