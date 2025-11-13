@@ -18,11 +18,9 @@ using CairoMakie
 # -----------------------------------------------------
 # Estructuras básicas
 
-@enum Estado begin
-    Salvado
-    Quemado
-    Protegido
-end
+# Reemplaza tu @enum Estado por:
+@enum Estado::UInt8 Salvado=0 Quemado=1 Protegido=2
+
 mutable struct Vertice
     id::Int              # Identificador único
     estado::Estado       # Estado actual del nodo
@@ -49,16 +47,21 @@ function Grafo(lista_aristas::Vector{Tuple{Int, Int}})
     nodos = unique(vcat([a for (a, _) in lista_aristas], [b for (_, b) in lista_aristas]))
     n = maximum(nodos)
     vertices = Dict{Int, Vertice}()
-    for i in nodos
+    for i in 1:n
         vertices[i] = Vertice(i, Salvado)
     end
     matriz = spzeros(Int, n, n)
     aristas = Set{Tuple{Int, Int}}()
     for (a, b) in lista_aristas
-        matriz[a, b] = 1
-        matriz[b, a] = 1
-        push!(aristas, (a, b))
-        push!(aristas, (b, a))  # Si es no dirigido
+        if a == b
+            continue
+        end
+        u, v = min(a,b), max(a,b)
+        if !( (u,v) in aristas )
+            push!(aristas, (u,v))
+            matriz[a, b] = 1
+            matriz[b, a] = 1
+        end
     end
     return Grafo(vertices, aristas, matriz)
 end
@@ -83,10 +86,20 @@ end
 
 # Agregar arista
 function agregar_arista!(G::Grafo, a::Int, b::Int)
-    push!(G.aristas, (a, b))
-    push!(G.aristas, (b, a))
-    G.matriz[a, b] = 1
-    G.matriz[b, a] = 1
+    # asegurar existencia de vértices
+    if !haskey(G.vertices, a)
+        agregar_vertice!(G, a)
+    end
+    if !haskey(G.vertices, b)
+        agregar_vertice!(G, b)
+    end
+    u, v = min(a,b), max(a,b)
+    # almacenar una sola representación para no dirigido
+    if !( (u,v) in G.aristas )
+        push!(G.aristas, (u,v))
+        G.matriz[a,b] = 1
+        G.matriz[b,a] = 1
+    end
 end
 
 # -----------------------------------------------------
@@ -94,26 +107,25 @@ end
 
 # Vecinos de un vértice
 function vecinos(G::Grafo, id::Int)
-    row = G.matriz[id, :]
-    idx, _ = findnz(row)   # devuelve índices no nulos en la fila
-    return collect(idx)
+    _, cols, _ = findnz(G.matriz[id, :])
+    return collect(cols)
 end
 # Infectar desde nodos quemados
-function infectar!(G::Grafo, quemados::Vector{Int}; p_fire::Float64 = 1.0)
-    nuevos_quemados = Set{Int}()
+function infectar!(G::Grafo, quemados::Vector{Int}; p_fire::Float64 = 1.0, rng = Random.GLOBAL_RNG)
+    nuevos = Set{Int}()
     for q in quemados
         for v in vecinos(G, q)
-            if G.vertices[v].estado == Salvado && rand() <= p_fire
-                push!(nuevos_quemados, v)
+            if G.vertices[v].estado == Salvado && rand(rng) <= p_fire
+                push!(nuevos, v)
             end
         end
     end
-    # aplicar cambios al final (evita efectos de orden)
-    for v in nuevos_quemados
+    for v in nuevos
         G.vertices[v].estado = Quemado
     end
-    return collect(nuevos_quemados)
+    return collect(nuevos)
 end
+
 # Obtener nodos quemados
 function nodos_quemados(G::Grafo)
     return [v.id for v in values(G.vertices) if v.estado == Quemado]
