@@ -94,19 +94,23 @@ end
 
 # Vecinos de un vértice
 function vecinos(G::Grafo, id::Int)
-    fila = G.matriz[id, :]
-    return [i for i in 1:size(G.matriz, 1) if fila[i] != 0]
+    row = G.matriz[id, :]
+    idx, _ = findnz(row)   # devuelve índices no nulos en la fila
+    return collect(idx)
 end
 # Infectar desde nodos quemados
-function infectar!(G::Grafo, quemados::Vector{Int})
+function infectar!(G::Grafo, quemados::Vector{Int}; p_fire::Float64 = 1.0)
     nuevos_quemados = Set{Int}()
     for q in quemados
         for v in vecinos(G, q)
-            if G.vertices[v].estado == Salvado
-                G.vertices[v].estado = Quemado
+            if G.vertices[v].estado == Salvado && rand() <= p_fire
                 push!(nuevos_quemados, v)
             end
         end
+    end
+    # aplicar cambios al final (evita efectos de orden)
+    for v in nuevos_quemados
+        G.vertices[v].estado = Quemado
     end
     return collect(nuevos_quemados)
 end
@@ -118,51 +122,97 @@ end
 # -----------------------------------------------------
 # 🎨 Visualización del estado del grafo
 function estatus_grafo(G::Grafo; karg...)
-    colores = Vector{RGB}(undef, length(G.vertices))
-    for (i, v) in pairs(G.vertices)
-        if v.estado == Salvado
-            colores[i] = RGB(120/255, 180/255, 120/255)
-        elseif v.estado == Quemado
-            colores[i] = RGB(200/255, 0, 0)
-        else
-            colores[i] = RGB(70/255, 130/255, 180/255)
+    n = size(G.matriz, 1)
+    colores = [RGB(0.9,0.9,0.9) for _ in 1:n]  # color por defecto
+    for i in 1:n
+        if haskey(G.vertices, i)
+            v = G.vertices[i]
+            if v.estado == Salvado
+                colores[i] = RGB(120/255, 180/255, 120/255)
+            elseif v.estado == Quemado
+                colores[i] = RGB(200/255, 0, 0)
+            else
+                colores[i] = RGB(70/255, 130/255, 180/255)
+            end
         end
     end
     H = Graph(G.matriz)
     return gplot(H, nodefillc = colores; karg...)
 end
+
 function plotGrafo(G::Grafo; karg...)
     H = Graph(G.matriz)
     return gplot(H; karg...)
 end
 
-function simular_bombero!(G::Grafo, inicio::Int, estrategia::Function, turnos::Int, bomberos_por_turno::Int)
-    # Inicializar el fuego
+function simular_bombero!(G::Grafo, inicio::Int, estrategia::Function;
+                         max_turnos::Int = 100, bomberos_por_turno::Int = 1,
+                         p_fire::Float64 = 1.0, rng = Random.GLOBAL_RNG)
+    # resetear estados si es necesario
+    for v in values(G.vertices)
+        v.estado = Salvado
+    end
     G.vertices[inicio].estado = Quemado
-    println("🔥 Inicio del fuego en el nodo $inicio")
-    println("\n🔄 Turno 0")
-    etiquetas = [string(i) for i in 1:length(G.vertices)]
-    display(estatus_grafo(G; nodelabel = etiquetas))
-    for t in 1:turnos
-        println("\n🔄 Turno $t")
-
-        # Obtener nodos quemados
+    historial = []
+    t = 0
+    while t < max_turnos
         quemados = nodos_quemados(G)
-
-        # Aplicar estrategia de protección
-        protegidos = estrategia(G, quemados, bomberos_por_turno)
+        if isempty(quemados)
+            break
+        end
+        # estrategia debe devolver vértices válidos; filtramos por seguridad
+        candidatos = estrategia(G, quemados, bomberos_por_turno)
+        protegidos = [p for p in candidatos if haskey(G.vertices, p) && G.vertices[p].estado == Salvado]
         for p in protegidos
             G.vertices[p].estado = Protegido
         end
-        println("🛡️ Nodos protegidos: $(protegidos)")
-
-        # Propagar fuego
-        nuevos_quemados = infectar!(G, quemados)
-        println("🔥 Nuevos nodos quemados: $(nuevos_quemados)")
-
-        # Mostrar estado del grafo
-        display(estatus_grafo(G; nodelabel = etiquetas))
+        nuevos = infectar!(G, quemados; p_fire = p_fire)
+        push!(historial, (turn = t, quemados = copy(quemados), protegidos = copy(protegidos), nuevos = copy(nuevos)))
+        t += 1
     end
+    return (turns = t, historial = historial, salvados = [v.id for v in values(G.vertices) if v.estado == Salvado])
+end
+# ----------------------------------------------------------------------------------------------------
+# Con esta separación puedes implementar estrategias que usen top.adj 
+# y estado sin tocar matrices dispersas, y convertir a Graph solo para visualización si lo necesitas.
+# ----------------------------------------------------------------------------------------------------
+
+# Topología simple y vector de estados
+struct Topologia
+    n::Int
+    adj::Vector{Vector{Int}}   # listas de adyacencia 1..n
 end
 
-# -----------------------------------------------------
+function Topologia_from_edges(lista_aristas::Vector{Tuple{Int,Int}})
+    nodos = unique(vcat([a for (a,_) in lista_aristas], [b for (_,b) in lista_aristas]))
+    n = maximum(nodos)
+    adj = [Int[] for _ in 1:n]
+    for (a,b) in lista_aristas
+        push!(adj[a], b)
+        push!(adj[b], a)
+    end
+    return Topologia(n, adj)
+end
+
+# Estado separado
+const EstadoVec = Vector{Estado}
+
+function nuevo_estado(n::Int)
+    fill(Salvado, n)
+end
+
+# infectar con adjlist
+function infectar_adj!(top::Topologia, estado::EstadoVec, quemados::Vector{Int}; p_fire::Float64 = 1.0)
+    nuevos = Set{Int}()
+    for q in quemados
+        for v in top.adj[q]
+            if estado[v] == Salvado && rand() <= p_fire
+                push!(nuevos, v)
+            end
+        end
+    end
+    for v in nuevos
+        estado[v] = Quemado
+    end
+    return collect(nuevos)
+end
