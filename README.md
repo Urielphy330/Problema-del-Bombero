@@ -12,11 +12,11 @@ El problema del bombero es un modelo de propagación de incendios en una gráfic
 
 ## 📦 Estructura del proyecto
 
-- `src/` → Código fuente en Julia
-- `notebooks/` → Cuadernos de Jupyter con ejemplos y visualizaciones
-- `data/` → Datos de entrada o configuraciones de gráficas
-- `LICENSE` → Licencia MIT
-- `README.md` → Este archivo
+- `src/` Código Julia
+- `scripts/` Scripts de ejecución
+- `data/` Resultados
+- `notebooks/` Análisis y visualización
+- `tests/` Pruebas unitarias
 
 ## 🚀 Requisitos
 
