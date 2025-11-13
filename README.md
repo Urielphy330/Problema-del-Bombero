@@ -1,6 +1,7 @@
 # Problema del Bombero en gráficas simples 🔥
 
-Este repositorio contiene la implementación computacional del problema del bombero utilizando el lenguaje de programación Julia y el enfoque de programación orientada a objetos.
+Repositorio para el proyecto de investigación sobre el Problema del Bombero en teoría de gráficas.
+Contiene simulador en Julia, heurísticas, experimentos en gráficas aleatorias y resultados reproducibles.
 
 ## ✍️ Autor
 Desarrollado por Uriel Villanueva Alcala. Contacto: urielalcala330@ciencias.unam.mx
