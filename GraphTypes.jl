@@ -1,13 +1,11 @@
-module GraphTypes
-
 using SparseArrays, Random
 
 # Si ya existe `Estado` en Main (tu código original), lo reutilizamos.
-if isdefined(Main, :Estado)
-    const Estado = Main.Estado
-else
-    @enum Estado Salvado Quemado Protegido
-end
+#if isdefined(Main, :Estado)
+#    const Estado = Main.Estado
+#else
+@enum Estado::UInt8 Salvado=0 Quemado=1 Protegido=2
+#end
 
 export Estado, Topologia, topologia_from_edges, topologia_from_sparsematrix,
        topologia_from_grafo, nuevo_estado
@@ -109,7 +107,5 @@ end
 Crea un vector de estados inicial (todos `Salvado`) de longitud `n`.
 """
 function nuevo_estado(n::Int)
-    fill(Estado.Salvado, n)
+    fill(Salvado, n)
 end
-
-end # module
