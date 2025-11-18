@@ -1,10 +1,9 @@
-module Strategies
-
 using Random
-import GraphTypes: Topologia, Estado
+include("GraphTypes.jl")
 
 export grado_strategy, aleatoria_strategy, cercania_strategy, bfs_strategy, dfs_strategy
 
+const Estado = Main.Estado
 const E = Estado
 
 # --- Utilidades internas ---------------------------------------------------
@@ -69,7 +68,7 @@ end
 Selecciona hasta `b` vértices salvados con mayor grado (número de vecinos).
 """
 function grado_strategy(top::Topologia, estado::Vector{E}, quemados::Vector{Int}, b::Int; rng=Random.GLOBAL_RNG)
-    candidates = [i for i in 1:top.n if estado[i] == E.Salvado]
+    candidates = [i for i in 1:top.n if estado[i] == Salvado]
     sort!(candidates, by = i -> length(top.adj[i]), rev = true)
     return candidates[1:min(b, length(candidates))]
 end
@@ -80,7 +79,7 @@ end
 Selecciona hasta `b` vértices salvados al azar.
 """
 function aleatoria_strategy(top::Topologia, estado::Vector{E}, quemados::Vector{Int}, b::Int; rng=Random.GLOBAL_RNG)
-    candidates = [i for i in 1:top.n if estado[i] == E.Salvado]
+    candidates = [i for i in 1:top.n if estado[i] == Salvado]
     shuffle!(rng, candidates)
     return candidates[1:min(b, length(candidates))]
 end
@@ -95,7 +94,7 @@ function bfs_strategy(top::Topologia, estado::Vector{E}, quemados::Vector{Int}, 
         return Int[]
     end
     dist = _multi_source_bfs(top, quemados)
-    candidates = [i for i in 1:top.n if estado[i] == E.Salvado && dist[i] != -1]
+    candidates = [i for i in 1:top.n if estado[i] == Salvado && dist[i] != -1]
     sort!(candidates, by = i -> dist[i])
     return candidates[1:min(b, length(candidates))]
 end
@@ -132,7 +131,7 @@ function cercania_strategy(top::Topologia, estado::Vector{E}, quemados::Vector{I
             avgdist[i] = sumdist[i] / reachable_count[i]
         end
     end
-    candidates = [i for i in 1:n if estado[i] == E.Salvado && isfinite(avgdist[i])]
+    candidates = [i for i in 1:n if estado[i] == Salvado && isfinite(avgdist[i])]
     sort!(candidates, by = i -> avgdist[i])
     return candidates[1:min(b, length(candidates))]
 end
@@ -161,8 +160,6 @@ function dfs_strategy(top::Topologia, estado::Vector{E}, quemados::Vector{Int}, 
     end
     _dfs(start)
     # filtrar solo salvados
-    candidates = [v for v in order if estado[v] == E.Salvado]
+    candidates = [v for v in order if estado[v] == Salvado]
     return candidates[1:min(b, length(candidates))]
 end
-
-end # module
